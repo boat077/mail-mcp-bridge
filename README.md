@@ -57,15 +57,33 @@ In short, this project bridges the gap between macOS Mail and AI assistants, mak
 git clone https://github.com/fatbobman/mail-mcp-bridge.git
 cd mail-mcp-bridge
 
-# Run the setup script
-./setup_mcp.sh
+# Install MCP dependencies
+pip3 install mcp
 ```
 
-The setup script will:
-1. Check Python environment
-2. Install MCP dependencies
-3. Configure MCP server for Claude Desktop
-4. Clear Python cache
+#### Configure MCP Server for Claude Desktop
+
+1. **Find Claude Desktop config location:**
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+2. **Edit the config file** (create if it doesn't exist):
+
+```json
+{
+  "mcpServers": {
+    "mail": {
+      "command": "python3",
+      "args": [
+        "/path/to/mail-mcp-bridge/mail_mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+**Important:** Replace `/path/to/mail-mcp-bridge` with your actual project path.
+
+3. **Restart Claude Desktop** (quit completely, then reopen)
 
 > **Note:** This project has been tested on macOS 26 (Tahoe). It should work on macOS 12.0+, but other versions have not been tested yet.
 
@@ -105,11 +123,11 @@ Follow these steps to add a "Copy Message-ID" action to Mail:
    - Name: **Copy Message-ID**
    - It will be saved to `~/Library/Services/`
 
-7. **Assign Keyboard Shortcut** (Optional but Recommended)
+7. **Assign Keyboard Shortcut** (Optional)
    - System Settings → Keyboard → Keyboard Shortcuts
    - Select: Services → Mail
    - Find: "Copy Message-ID"
-   - Click and add shortcut: `⌘ + ⇧ + C`
+   - Click and add your preferred shortcut (e.g., `⌘ + ⇧ + C`)
 
 **Setup Preview:**
 
@@ -118,15 +136,17 @@ Follow these steps to add a "Copy Message-ID" action to Mail:
 **Test It:**
 1. Open Mail app
 2. Select any email
-3. Press `⌘ + ⇧ + C`
-4. You should hear a sound and see notification with Message-ID
-5. The Message-ID is now in your clipboard, ready to paste to AI
+3. Use your keyboard shortcut (if configured)
+4. You should hear a sound confirming the Message-ID was copied
+5. Check your clipboard - the Message-ID should be there, ready to paste to AI
+
+> **Note:** macOS notifications may not appear depending on your system settings, but the sound confirms it worked.
 
 **Demo Video:**
 
 https://github.com/user-attachments/assets/7ede277f-41ef-4898-ad8b-3014d5854b19
 
-> **Note:** In the video above, the Quick Action is triggered via right-click menu for demonstration purposes. In daily use, the keyboard shortcut `⌘ + ⇧ + C` is much faster and recommended.
+> **Note:** In the video above, the Quick Action is triggered via right-click menu for demonstration purposes. In daily use, a keyboard shortcut is more convenient.
 
 ## 📖 Usage
 
@@ -156,7 +176,7 @@ AI: I'll retrieve the entire thread...
 
 **Real-World Use Case:**
 ```
-You: Please summarize all communication with our sponsor Proxyman,
+You: Please summarize all communication with our business partner,
 including their requirements, promised timelines, and action items.
 
 AI: I'll read the relevant email threads and extract key information...
@@ -273,21 +293,21 @@ mail-mcp-bridge/
 ├── get_thread_paths.py      # Get email thread paths
 ├── parse_email.py           # Parse .emlx to plain text
 ├── mail_mcp_server.py       # MCP server (main)
-├── setup_mcp.sh             # Installation script
 ├── automator_script.sh      # Mail Quick Action script
-└── README.md                # This file
+├── README.md                # This file
+└── README_zh.md             # Chinese version
 ```
 
 ## ⚙️ Configuration
 
 ### MCP Server Config
 
-After running `setup_mcp.sh`, the MCP server is configured in:
+The MCP server is configured in:
 ```
-~/.claude.json
+~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-Configuration:
+Configuration example:
 ```json
 {
   "mcpServers": {
@@ -301,15 +321,17 @@ Configuration:
 }
 ```
 
+**Note:** Update the path to match your actual installation directory.
+
 ## 🐛 Troubleshooting
 
 ### Issue: MCP server not found
 **Solution:**
 ```bash
-# Re-run setup
-./setup_mcp.sh
+# Verify the path in claude_desktop_config.json
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
-# Restart Claude Desktop
+# Restart Claude Desktop (quit completely, then reopen)
 ```
 
 ### Issue: Email not found
@@ -345,7 +367,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Built for the MCP (Model Context Protocol) ecosystem
 - Inspired by the need to bridge email and AI
-- Tested with Claude Desktop on macOS 15.0+
+- Tested with Claude Desktop on macOS 26 (Tahoe)
 
 ## 📮 Contact
 

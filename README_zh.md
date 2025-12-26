@@ -57,15 +57,33 @@
 git clone https://github.com/fatbobman/mail-mcp-bridge.git
 cd mail-mcp-bridge
 
-# 运行安装脚本
-./setup_mcp.sh
+# 安装 MCP 依赖
+pip3 install mcp
 ```
 
-安装脚本会：
-1. 检查 Python 环境
-2. 安装 MCP 依赖
-3. 为 Claude Desktop 配置 MCP 服务器
-4. 清理 Python 缓存
+#### 为 Claude Desktop 配置 MCP 服务器
+
+1. **找到 Claude Desktop 配置文件位置：**
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+2. **编辑配置文件**（如果不存在则创建）：
+
+```json
+{
+  "mcpServers": {
+    "mail": {
+      "command": "python3",
+      "args": [
+        "/path/to/mail-mcp-bridge/mail_mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+**重要：** 将 `/path/to/mail-mcp-bridge` 替换为你的实际项目路径。
+
+3. **重启 Claude Desktop**（完全退出后重新打开）
 
 > **注意：** 本项目已在 macOS 26 (Tahoe) 上测试。理论上支持 macOS 12.0+，但其他版本未经测试。
 
@@ -109,7 +127,7 @@ cd mail-mcp-bridge
    - 系统设置 → 键盘 → 键盘快捷键
    - 选择：Services → Mail
    - 找到："Copy Message-ID"
-   - 点击并添加快捷键：`⌘ + ⇧ + C`
+   - 点击并添加你喜欢的快捷键（例如：`⌘ + ⇧ + C`）
 
 **设置预览：**
 
@@ -118,15 +136,17 @@ cd mail-mcp-bridge
 **测试一下：**
 1. 打开 Mail 应用
 2. 选择任意邮件
-3. 按 `⌘ + ⇧ + C`
-4. 会听到提示音并看到带有 Message-ID 的通知
-5. Message-ID 已复制到剪贴板，可以粘贴给 AI 了
+3. 使用你设置的快捷键（如果已配置）
+4. 会听到提示音，表示 Message-ID 已复制
+5. 检查剪贴板 - Message-ID 应该已在其中，可以粘贴给 AI
+
+> **注意：** macOS 通知可能因系统设置而不显示，但提示音确认操作成功。
 
 **演示视频：**
 
 https://github.com/user-attachments/assets/7ede277f-41ef-4898-ad8b-3014d5854b19
 
-> **注意：** 视频中为了演示清楚，通过右键菜单运行 Quick Action。日常使用时，键盘快捷键 `⌘ + ⇧ + C` 会更快更方便。
+> **注意：** 视频中为了演示清楚，通过右键菜单运行 Quick Action。日常使用时，建议设置键盘快捷键会更方便。
 
 ## 📖 使用方法
 
@@ -157,7 +177,7 @@ AI：我来获取整个邮件线索...
 **典型应用场景：**
 
 ```
-你：帮我总结一下与赞助商 Proxyman 的所有邮件沟通，
+你：帮我总结一下与业务合作伙伴的所有邮件沟通，
 包括他们的需求、承诺的时间点和待办事项。
 
 AI：我会读取相关邮件线索并提取关键信息...
@@ -274,21 +294,21 @@ mail-mcp-bridge/
 ├── get_thread_paths.py      # 获取邮件线索路径
 ├── parse_email.py           # 解析 .emlx 为纯文本
 ├── mail_mcp_server.py       # MCP 服务器（主程序）
-├── setup_mcp.sh             # 安装脚本
 ├── automator_script.sh      # Mail Quick Action 脚本
-└── README.md                # 英文文档
+├── README.md                # 英文文档
+└── README_zh.md             # 中文文档
 ```
 
 ## ⚙️ 配置
 
 ### MCP 服务器配置
 
-运行 `setup_mcp.sh` 后，MCP 服务器配置在：
+MCP 服务器配置在：
 ```
-~/.claude.json
+~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-配置内容：
+配置示例：
 ```json
 {
   "mcpServers": {
@@ -302,15 +322,17 @@ mail-mcp-bridge/
 }
 ```
 
+**注意：** 将路径更新为你的实际安装目录。
+
 ## 🐛 故障排除
 
 ### 问题：MCP 服务器未找到
 **解决方案：**
 ```bash
-# 重新运行安装
-./setup_mcp.sh
+# 验证 claude_desktop_config.json 中的路径
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
-# 重启 Claude Desktop
+# 重启 Claude Desktop（完全退出后重新打开）
 ```
 
 ### 问题：未找到邮件
@@ -346,12 +368,12 @@ MIT License - 详见 [LICENSE](LICENSE) 文件。
 
 - 为 MCP (Model Context Protocol) 生态系统构建
 - 灵感来源于连接邮件和 AI 的需求
-- 在 macOS 15.0+ 上的 Claude Desktop 中测试
+- 在 macOS 26 (Tahoe) 上的 Claude Desktop 中测试
 
 ## 📮 联系方式
 
 - **Issues**: https://github.com/fatbobman/mail-mcp-bridge/issues
-- **作者**: Fatbobman (徐阳)
+- **作者**: Fatbobman
 
 ---
 
