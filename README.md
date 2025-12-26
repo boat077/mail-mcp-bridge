@@ -38,6 +38,8 @@ The setup script will:
 3. Configure MCP server for Claude Desktop
 4. Clear Python cache
 
+> **Note:** This project has been tested on macOS 26 (Tahoe). It should work on macOS 12.0+, but other versions have not been tested yet.
+
 ### Setup Mail Quick Action
 
 Follow these steps to add a "Copy Message-ID" action to Mail:
