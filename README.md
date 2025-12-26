@@ -22,7 +22,7 @@ This project focuses on extracting and analyzing **plain text email content**, m
 
 I've been exploring ways to deeply integrate AI into various aspects of my work and life. In practice, I've found that AI-assisted project management and communication summarization is particularly valuable.
 
-However, much of real-world communication happens through email—especially ongoing conversations with sponsors, clients, and partners. On macOS, email files (particularly email threads) are scattered across different directories. The traditional approach of exporting individual emails for AI analysis is inefficient and unfriendly to active projects.
+However, much of real-world communication happens through email—everything from project collaborations and client communications to business negotiations and technical support. On macOS, email files (particularly email threads) are scattered across different directories. The traditional approach of exporting individual emails for AI analysis is inefficient and unfriendly to active projects.
 
 To solve this problem, I created **Mail MCP Bridge**:
 - One-click Message-ID retrieval (via Mail Quick Action)
