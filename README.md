@@ -25,7 +25,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/mail-mcp-bridge.git
+git clone https://github.com/fatbobman/mail-mcp-bridge.git
 cd mail-mcp-bridge
 
 # Run the setup script
@@ -309,7 +309,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📮 Contact
 
-- **Issues**: https://github.com/your-username/mail-mcp-bridge/issues
+- **Issues**: https://github.com/fatbobman/mail-mcp-bridge/issues
 - **Author**: Fatbobman (Xu Yang)
 
 ---
