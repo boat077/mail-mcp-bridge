@@ -1,7 +1,7 @@
 #!/bin/bash
 # Mail Message-ID Copy Quick Action
 # Copy the first Message-ID from selected emails in Mail.app
-# Optimized: Processes first 10000 chars to handle longer email headers
+# Optimized: Direct AppleScript property access - instant even with large attachments
 
 osascript <<'EOF'
 tell application "Mail"
@@ -13,33 +13,19 @@ tell application "Mail"
         return
     end if
 
-    -- Only get the first successful Message-ID
-    -- (One ID is enough for read_thread to get entire conversation)
-    repeat with msg in selectedMessages
+    -- Get the first message's Message-ID directly
+    -- This uses Apple's built-in property, no need to parse email source
+    repeat with msg in (get selectedMessages)
         try
-            -- Get email source
-            set msgSource to source of msg
-
-            -- Only take first 10000 characters (email headers can be longer)
-            -- Performance optimization: Still processes large attachment emails quickly
-            set msgHeader to ""
-            try
-                set sourceLen to length of msgSource
-                if sourceLen > 10000 then
-                    set msgHeader to text 1 thru 10000 of msgSource
-                else
-                    set msgHeader to msgSource
-                end if
-            on error
-                set msgHeader to msgSource
-            end try
-
-            -- Extract Message-ID (case-insensitive)
-            -- Supports both "Message-ID" and "Message-Id" formats
-            set msgID to do shell script "echo " & quoted form of msgHeader & " | grep -iE 'Message-Id:[^<]*<[^>]+>' | sed -E 's/.*[Mm]essage-[Ii][dD]:[^<]*(<[^>]+>).*/\\1/' | head -1 | tr -d '\\r\\n'"
+            set msgID to message id of msg
 
             if msgID is not "" then
-                -- Found first valid Message-ID, copy and exit
+                -- Ensure Message-ID is wrapped in angle brackets (RFC 5322 standard)
+                if msgID does not start with "<" then
+                    set msgID to "<" & msgID & ">"
+                end if
+
+                -- Found Message-ID, copy and exit
                 set the clipboard to msgID
                 display notification msgID with title "✅ Message-ID Copied"
                 do shell script "afplay /System/Library/Sounds/Glass.aiff"
