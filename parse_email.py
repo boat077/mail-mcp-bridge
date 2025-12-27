@@ -86,8 +86,7 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
         if len(lines) < 2:
             return {
                 "success": False,
-                "error": "Invalid file format or empty file",
-                "file_path": str(file_path)
+                "error": "Invalid file format or empty file"
             }
 
         # From second line, find plist start position
@@ -109,10 +108,12 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
         subject = decode_header_value(msg.get('Subject', ''))
         from_addr = decode_header_value(msg.get('From', ''))
         to_addr = decode_header_value(msg.get('To', ''))
+        cc_addr = decode_header_value(msg.get('Cc', ''))
         date = msg.get('Date', '')
 
-        # Extract all headers
-        headers = dict(msg.items())
+        # Extract threading-related headers (important for conversation analysis)
+        references = msg.get('References', '')
+        in_reply_to = msg.get('In-Reply-To', '')
 
         # Extract body
         body_text = ""
@@ -160,17 +161,17 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
             "subject": subject,
             "from": from_addr,
             "to": to_addr,
+            "cc": cc_addr,
             "date": date,
-            "body_text": body_text.strip(),
-            "headers": headers,
-            "file_path": str(file_path)
+            "references": references,
+            "in_reply_to": in_reply_to,
+            "body_text": body_text.strip()
         }
 
     except Exception as e:
         return {
             "success": False,
-            "error": f"Parse failed: {str(e)}",
-            "file_path": str(file_path)
+            "error": f"Parse failed: {str(e)}"
         }
 
 
