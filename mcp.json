@@ -1,0 +1,25 @@
+{
+  "name": "mail",
+  "version": "1.0.0",
+  "description": "macOS Mail 邮件访问服务，支持读取邮件内容和邮件会话",
+  "author": "fatbobman",
+  "repository": "https://github.com/fatbobman/mail-mcp-bridge",
+  "language": "python",
+  "runtime": {
+    "type": "python",
+    "command": "python3",
+    "entry": "mail_mcp_server.py"
+  },
+  "tools": [
+    "get_email_path",
+    "get_thread_paths",
+    "read_email",
+    "read_thread"
+  ],
+  "env_schema": [],
+  "requirements": [
+    "mcp>=0.9.0"
+  ],
+  "tags": ["mail", "email", "macos", "productivity"],
+  "platforms": ["macos"]
+}
