@@ -30,15 +30,15 @@
 - 🔍 Summarize long email conversations
 - 📊 Extract structured data (requirements, feedback, commitments)
 - 🤝 Review conversation history
-
-**Focus**: Plain text content extraction only (no attachments, no HTML) — perfect for AI analysis.
+- 📎 Analyze email attachments (invoices, reports, documents)
 
 ## ✨ Features
 
 - 📧 **Direct Access** - AI reads your emails through MCP protocol
 - 🧵 **Thread Support** - Retrieve entire conversations with one Message-ID
+- 📎 **Attachment Extraction** - Extract email attachments for AI analysis (PDFs, documents, images)
 - ⚡ **Fast** - Millisecond-level query response
-- 🎯 **Pure Text** - Clean text extraction, optimized for AI
+- 🎯 **Clean Text** - Optimized text extraction for AI (excludes HTML, embedded images)
 - 🔒 **Privacy First** - Runs locally, emails never leave your Mac
 
 ## 🚀 Quick Start
@@ -84,6 +84,24 @@ pip3 install mcp
    ```
 
    **Important**: Replace `/path/to/mail-mcp-bridge` with your actual project path.
+
+   **Optional**: Configure attachment temp directory (defaults to `/tmp/mail-mcp-attachments`):
+
+   ```json
+   {
+     "mcpServers": {
+       "mail": {
+         "command": "python3",
+         "args": [
+           "/path/to/mail-mcp-bridge/mail_mcp_server.py"
+         ],
+         "env": {
+           "MAIL_ATTACHMENT_PATH": "/tmp"
+         }
+       }
+     }
+   }
+   ```
 
 3. **Restart Claude Desktop** (quit completely, then reopen)
 
@@ -172,14 +190,25 @@ AI: I'll read the relevant email threads and extract key information...
 [AI analyzes email content, organizes project progress, commitments, and action items]
 ```
 
+**Extract Email Attachments**:
+
+```text
+You: Extract and analyze the PDF invoice from this email: <message-id@example.com>
+
+AI: I can see this email has an invoice.pdf attachment (1.2MB). Let me extract it...
+[AI extracts attachment and analyzes the content]
+```
+
 ## 🛠️ MCP Tools
 
 | Tool | Description |
 |------|-------------|
 | `get_email_path` | Get single email file path |
 | `get_thread_paths` | Get all paths in email thread |
-| `read_email` | Read single email content |
+| `read_email` | Read single email content (includes attachment metadata) |
 | `read_thread` | Read entire email thread |
+| `extract_attachments` | Extract specific attachments from email |
+| `cleanup_attachments` | Clean up temporary attachment files |
 
 📖 **[→ Detailed API Documentation](TOOLS.md)**
 

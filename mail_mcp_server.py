@@ -2,11 +2,13 @@
 """
 Mail MCP Server - Enable AI to access macOS Mail emails
 
-Provides four tools:
+Provides six tools:
 1. get_email_path - Get file path of a single email
 2. get_thread_paths - Get all file paths in an email thread
-3. read_email - Parse and read plain text content of a single email
+3. read_email - Parse and read plain text content of a single email (includes attachment metadata)
 4. read_thread - Parse and read all emails in an entire thread
+5. extract_attachments - Extract specific attachments from an email
+6. cleanup_attachments - Clean up temporary attachment directories
 
 Run with:
     python3 mail_mcp_server.py
@@ -22,6 +24,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from get_email_path import get_email_path as get_single_email_path
 from get_thread_paths import get_thread_paths as get_all_thread_paths
 from parse_email import parse_email_file
+from extract_attachments import extract_attachments
+from cleanup_attachments import cleanup_attachments
 
 try:
     from mcp.server import Server
@@ -105,6 +109,45 @@ async def list_tools() -> list[Tool]:
                     }
                 },
                 "required": ["message_id"]
+            }
+        ),
+        Tool(
+            name="extract_attachments",
+            description="Extract specific attachments from an email by Message-ID and attachment filenames. "
+                       "Extracts attachments to a temporary directory (configured by MAIL_ATTACHMENT_PATH env var, "
+                       "defaults to /tmp/mail-mcp-attachments). Files are saved in subdirectories named by message-id "
+                       "for easy organization and cleanup. Returns the extracted file paths for further processing.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "RFC Message-ID, e.g. <abc123@example.com>. Can include or exclude angle brackets."
+                    },
+                    "filenames": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of attachment filenames to extract (as shown in read_email attachments list)"
+                    }
+                },
+                "required": ["message_id", "filenames"]
+            }
+        ),
+        Tool(
+            name="cleanup_attachments",
+            description="Clean up temporary attachment directories created by extract_attachments. "
+                       "Removes all files in the specified message-id directories. Use this after processing "
+                       "attachments to free up disk space. Supports cleaning up multiple message-ids at once.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "message_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of RFC Message-IDs to clean up. Can include or exclude angle brackets."
+                    }
+                },
+                "required": ["message_ids"]
             }
         )
     ]
@@ -300,6 +343,85 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = {
                 "success": False,
                 "message_id": message_id,
+                "error": str(e)
+            }
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, ensure_ascii=False, indent=2)
+            )]
+
+    elif name == "extract_attachments":
+        # Tool 5: Extract attachments from email
+        message_id = arguments.get("message_id")
+        filenames = arguments.get("filenames")
+
+        if not message_id:
+            return [TextContent(
+                type="text",
+                text="Error: Missing message_id parameter"
+            )]
+
+        if not filenames:
+            return [TextContent(
+                type="text",
+                text="Error: Missing filenames parameter"
+            )]
+
+        try:
+            # First get file path
+            file_path = get_single_email_path(message_id)
+
+            if not file_path:
+                result = {
+                    "success": False,
+                    "message_id": message_id,
+                    "error": "Email file not found"
+                }
+                return [TextContent(
+                    type="text",
+                    text=json.dumps(result, ensure_ascii=False, indent=2)
+                )]
+
+            # Extract attachments
+            extract_result = extract_attachments(file_path, message_id, filenames)
+
+            return [TextContent(
+                type="text",
+                text=json.dumps(extract_result, ensure_ascii=False, indent=2)
+            )]
+
+        except Exception as e:
+            result = {
+                "success": False,
+                "message_id": message_id,
+                "error": str(e)
+            }
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, ensure_ascii=False, indent=2)
+            )]
+
+    elif name == "cleanup_attachments":
+        # Tool 6: Clean up attachment directories
+        message_ids = arguments.get("message_ids")
+
+        if not message_ids:
+            return [TextContent(
+                type="text",
+                text="Error: Missing message_ids parameter"
+            )]
+
+        try:
+            cleanup_result = cleanup_attachments(message_ids)
+
+            return [TextContent(
+                type="text",
+                text=json.dumps(cleanup_result, ensure_ascii=False, indent=2)
+            )]
+
+        except Exception as e:
+            result = {
+                "success": False,
                 "error": str(e)
             }
             return [TextContent(

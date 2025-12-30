@@ -60,8 +60,13 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
             "to": "...",
             "date": "...",
             "body_text": "email body",
-            "headers": {...},
-            "file_path": "..."
+            "attachments": [
+                {
+                    "filename": "...",
+                    "mime_type": "...",
+                    "size_bytes": 12345
+                }
+            ]
         }
     """
     file_path_obj = Path(file_path)
@@ -115,21 +120,47 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
         references = msg.get('References', '')
         in_reply_to = msg.get('In-Reply-To', '')
 
+        # Extract attachments metadata
+        attachments = []
+
         # Extract body
         body_text = ""
 
         if msg.is_multipart():
-            # multipart email - find text/plain part
+            # multipart email - find text/plain part and collect attachments
             for part in msg.walk():
                 content_type = part.get_content_type()
                 content_disposition = str(part.get('Content-Disposition', ''))
 
-                # Skip attachments
-                if 'attachment' in content_disposition:
-                    continue
+                # Check for attachment
+                # An attachment can be identified by:
+                # 1. Content-Disposition contains 'attachment'
+                # 2. Has a filename but is NOT a text/plain or text/html part
+                is_attachment = (
+                    'attachment' in content_disposition or
+                    (part.get_filename() and content_type not in ['text/plain', 'text/html'])
+                )
 
-                if content_type == 'text/plain':
-                    # Found plain text part
+                if is_attachment:
+                    # Extract attachment metadata
+                    filename = part.get_filename()
+
+                    if filename:
+                        # Decode filename if encoded
+                        filename = decode_header_value(filename)
+
+                        # Get attachment size by decoding payload
+                        payload = part.get_payload(decode=True)
+                        size_bytes = len(payload) if payload else 0
+
+                        attachments.append({
+                            "filename": filename,
+                            "mime_type": content_type,
+                            "size_bytes": size_bytes
+                        })
+                    # Don't continue - check if this is also text/plain
+                elif content_type == 'text/plain' and not body_text:
+                    # Found plain text part (only take the first one)
                     payload = part.get_payload(decode=True)
                     if payload:
                         # Try to decode
@@ -139,7 +170,6 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
                         except (UnicodeDecodeError, LookupError):
                             # Fallback to utf-8
                             body_text = payload.decode('utf-8', errors='replace')
-                    break
         else:
             # Single part email - extract directly
             content_type = msg.get_content_type()
@@ -165,7 +195,8 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
             "date": date,
             "references": references,
             "in_reply_to": in_reply_to,
-            "body_text": body_text.strip()
+            "body_text": body_text.strip(),
+            "attachments": attachments
         }
 
     except Exception as e:
@@ -198,6 +229,14 @@ def main():
         print(f"To: {result['to']}")
         print(f"Date: {result['date']}")
         print(f"Message-ID: {result['message_id']}")
+
+        if result['attachments']:
+            print(f"\n📎 Attachments ({len(result['attachments'])}):")
+            for i, att in enumerate(result['attachments'], 1):
+                print(f"  {i}. {att['filename']}")
+                print(f"     Type: {att['mime_type']}")
+                print(f"     Size: {att['size_bytes']:,} bytes")
+
         print("\n" + "="*50)
         print("\nBody content:")
         print(result['body_text'])

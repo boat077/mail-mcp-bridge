@@ -1,6 +1,6 @@
 # MCP Tools API Reference
 
-Complete documentation for all 4 MCP tools provided by Mail MCP Bridge.
+Complete documentation for all 6 MCP tools provided by Mail MCP Bridge.
 
 ## Table of Contents
 
@@ -8,6 +8,8 @@ Complete documentation for all 4 MCP tools provided by Mail MCP Bridge.
 - [get_thread_paths](#2-get_thread_paths)
 - [read_email](#3-read_email)
 - [read_thread](#4-read_thread)
+- [extract_attachments](#5-extract_attachments)
+- [cleanup_attachments](#6-cleanup_attachments)
 - [Error Handling](#error-handling)
 - [Performance](#performance)
 
@@ -186,7 +188,19 @@ Parse and read plain text content of a single email.
   "date": "Wed, 25 Dec 2024 10:30:00 +0800",
   "references": "<original@example.com> <prev@example.com>",
   "in_reply_to": "<prev@example.com>",
-  "body_text": "Plain text email body..."
+  "body_text": "Plain text email body...",
+  "attachments": [
+    {
+      "filename": "report.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 1234567
+    },
+    {
+      "filename": "data.xlsx",
+      "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "size_bytes": 23456
+    }
+  ]
 }
 ```
 
@@ -214,7 +228,8 @@ Parse and read plain text content of a single email.
 - ✅ Key headers (Subject, From, To, Cc, Date)
 - ✅ Threading headers (References, In-Reply-To)
 - ✅ Decoded header values (e.g. `=?UTF-8?B?...?=`)
-- ❌ Attachments (skipped)
+- ✅ **Attachment metadata** (filename, MIME type, size)
+- ❌ Attachment files (use `extract_attachments` to get actual files)
 - ❌ HTML content (skipped)
 - ❌ Embedded images (skipped)
 - ❌ Rich text/RTF (skipped)
@@ -340,6 +355,216 @@ Parse and read entire email thread.
 **Each email object** has the same structure as `read_email` return value.
 
 **Sorting**: Emails are returned in chronological order (oldest first).
+
+---
+
+## 5. `extract_attachments`
+
+Extract specific attachments from an email to a temporary directory.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message_id` | string | ✅ | RFC Message-ID |
+| `filenames` | array of string | ✅ | List of attachment filenames to extract |
+
+**Note**: Filenames should match the names returned in `read_email`'s `attachments` field.
+
+### Returns
+
+**Success**:
+
+```json
+{
+  "success": true,
+  "base_dir": "/tmp/mail-mcp-attachments",
+  "message_dir": "/tmp/mail-mcp-attachments/msg@example.com",
+  "extracted": [
+    {
+      "filename": "Report 2024/12/25.pdf",
+      "safe_filename": "Report 2024_12_25.pdf",
+      "path": "/tmp/mail-mcp-attachments/msg@example.com/Report 2024_12_25.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 1234567
+    }
+  ],
+  "not_found": []
+}
+```
+
+**Partial Success** (some attachments not found):
+
+```json
+{
+  "success": true,
+  "base_dir": "/tmp/mail-mcp-attachments",
+  "message_dir": "/tmp/mail-mcp-attachments/msg@example.com",
+  "extracted": [
+    {
+      "filename": "report.pdf",
+      "safe_filename": "report.pdf",
+      "path": "/tmp/mail-mcp-attachments/msg@example.com/report.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 1234567
+    }
+  ],
+  "not_found": ["missing_file.docx"]
+}
+```
+
+**Error**:
+
+```json
+{
+  "success": false,
+  "message_id": "<abc@example.com>",
+  "error": "Email file not found"
+}
+```
+
+### Use Cases
+
+- Extract PDFs, documents, images for AI analysis
+- Process invoice attachments
+- Analyze spreadsheets or reports
+- Save attachments to specific locations
+
+### Implementation Details
+
+**Directory Structure**:
+
+```
+{MAIL_ATTACHMENT_PATH}/mail-mcp-attachments/{message-id}/
+├── attachment1.pdf
+├── attachment2.docx
+└── ...
+```
+
+- Environment variable `MAIL_ATTACHMENT_PATH`: Base temp directory (default: `/tmp`)
+- Actual attachment directory: `{MAIL_ATTACHMENT_PATH}/mail-mcp-attachments/`
+- Each message-id gets its own subdirectory
+- Filenames are sanitized (special chars like `/` → `_`)
+
+**Attachment Sources** (in order of priority):
+
+1. **MIME payload** - For small attachments embedded in .emlx
+2. **File system** - For large attachments stored separately by Mail.app
+
+   Mail.app stores large attachments in:
+   ```
+   .../Data/{X}/{Y}/{Z}/Attachments/{message_num}/{att_id}/{filename}
+   ```
+
+**Filename Matching**:
+
+- Exact match first
+- Fuzzy match fallback (e.g., `Report 12/25/2024.pdf` → `Report 12_25_2024.pdf`)
+- Handles Mail.app's filename sanitization
+
+**Special Character Handling**:
+
+| Original | Saved As | Notes |
+|----------|----------|-------|
+| `Report 2024/12/25.pdf` | `Report 2024_12_25.pdf` | Slashes converted |
+| `File:Name.pdf` | `File_Name.pdf` | Colons converted |
+| `Path\\File.pdf` | `Path__File.pdf` | Backslashes converted |
+
+---
+
+## 6. `cleanup_attachments`
+
+Clean up temporary attachment directories created by `extract_attachments`.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message_ids` | array of string | ✅ | List of RFC Message-IDs to clean up |
+
+### Returns
+
+**Success**:
+
+```json
+{
+  "success": true,
+  "base_dir": "/tmp/mail-mcp-attachments",
+  "cleaned": [
+    {
+      "message_id": "<msg1@example.com>",
+      "path": "/tmp/mail-mcp-attachments/msg1@example.com",
+      "files_removed": 3,
+      "size_freed": 12345678
+    },
+    {
+      "message_id": "<msg2@example.com>",
+      "path": "/tmp/mail-mcp-attachments/msg2@example.com",
+      "files_removed": 1,
+      "size_freed": 234567
+    }
+  ],
+  "not_found": []
+}
+```
+
+**Partial Success** (some directories not found):
+
+```json
+{
+  "success": true,
+  "base_dir": "/tmp/mail-mcp-attachments",
+  "cleaned": [
+    {
+      "message_id": "<msg1@example.com>",
+      "path": "/tmp/mail-mcp-attachments/msg1@example.com",
+      "files_removed": 2,
+      "size_freed": 500000
+    }
+  ],
+  "not_found": ["<nonexistent@example.com>"]
+}
+```
+
+**Note**: Returns success even if some directories are not found.
+
+### Use Cases
+
+- Free up disk space after processing attachments
+- Clean up temporary files
+- Batch cleanup for multiple emails
+
+### Implementation Details
+
+**Cleanup Process**:
+
+1. For each message-id:
+   - Sanitize message-id (remove angle brackets)
+   - Construct directory path: `{base_dir}/{message-id}/`
+   - If directory exists:
+     - Count files and total size
+     - Recursively delete directory
+     - Report stats
+   - If not found, add to `not_found` list
+
+**Safety**:
+
+- Only removes directories under `{MAIL_ATTACHMENT_PATH}`
+- Will not affect other directories
+- Recursive deletion includes all subdirectories
+
+**Batch Operations**:
+
+```json
+// Clean up multiple emails at once
+{
+  "message_ids": [
+    "<msg1@example.com>",
+    "<msg2@example.com>",
+    "<msg3@example.com>"
+  ]
+}
+```
 
 ---
 
