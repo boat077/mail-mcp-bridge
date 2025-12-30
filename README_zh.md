@@ -39,6 +39,7 @@
 - 📧 **直接访问** - AI 通过 MCP 协议读取邮件
 - 🧵 **线索支持** - 一个 Message-ID 获取完整对话
 - 📎 **附件提取** - 提取邮件中的 PDF、文档等附件供 AI 分析
+- 🎨 **Claude Code 插件** - 预置的命令和技能，实现智能邮件分析
 - ⚡ **极速** - 毫秒级查询响应
 - 🎯 **纯文本** - 干净的文本提取，为 AI 优化
 - 🔒 **隐私优先** - 本地运行，邮件永不离开你的 Mac
@@ -88,6 +89,48 @@ pip3 install mcp
    **重要**: 将 `/path/to/mail-mcp-bridge` 替换为实际的项目路径。
 
 3. **重启 Claude Desktop** (完全退出后重新打开)
+
+### 安装 Claude Code 插件（可选但推荐）
+
+Mail MCP 包含开箱即用的 **Claude Code 插件**，提供智能邮件分析能力：
+
+**你将获得**：
+
+- 🎯 **智能附件分析** - 自动识别重要附件（发票、合同、税务文件）
+- 🧵 **线索追踪** - 跨邮件对话追踪文档演进
+- 🚀 **三种分析模式** - 快速/交互/自动模式，优化 Token 使用
+- 📋 **行动项提取** - 自动发现邮件中的截止日期和任务
+
+**安装方法**：
+
+```bash
+# 1. 添加 Mail MCP 插件市场
+/plugin marketplace add /path/to/mail-mcp-bridge/plugins
+
+# 2. 安装附件分析插件
+/plugin install mail-attachment-analyzer@mail-mcp
+
+# 3. 重启 Claude Code
+```
+
+将 `/path/to/mail-mcp-bridge` 替换为你的实际安装路径。
+
+**使用方式**：
+
+安装后，插件会自动工作：
+
+```
+你: 分析这封邮件 <message-id@example.com>
+AI: [自动检测附件并智能分析]
+```
+
+或使用手动命令：
+
+```
+/mail-mcp:analyze-attachment
+```
+
+📖 **[→ 插件文档](plugins/README.md)**
 
 ### 设置 Mail Quick Action
 

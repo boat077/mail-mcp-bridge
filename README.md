@@ -37,6 +37,7 @@
 - 📧 **Direct Access** - AI reads your emails through MCP protocol
 - 🧵 **Thread Support** - Retrieve entire conversations with one Message-ID
 - 📎 **Attachment Extraction** - Extract email attachments for AI analysis (PDFs, documents, images)
+- 🎨 **Claude Code Plugins** - Pre-built commands and skills for intelligent email analysis
 - ⚡ **Fast** - Millisecond-level query response
 - 🎯 **Clean Text** - Optimized text extraction for AI (excludes HTML, embedded images)
 - 🔒 **Privacy First** - Runs locally, emails never leave your Mac
@@ -104,6 +105,48 @@ pip3 install mcp
    ```
 
 3. **Restart Claude Desktop** (quit completely, then reopen)
+
+### Install Claude Code Plugins (Optional but Recommended)
+
+Mail MCP includes ready-to-use **Claude Code plugins** that provide intelligent email analysis capabilities:
+
+**What you get**:
+
+- 🎯 **Smart Attachment Analysis** - Automatically detects important attachments (invoices, contracts, tax docs)
+- 🧵 **Thread Tracking** - Tracks document evolution across email conversations
+- 🚀 **3 Analysis Modes** - Quick/Interactive/Auto modes to optimize token usage
+- 📋 **Action Item Extraction** - Finds deadlines and tasks in emails
+
+**Install**:
+
+```bash
+# 1. Add the Mail MCP plugin marketplace
+/plugin marketplace add /path/to/mail-mcp-bridge/plugins
+
+# 2. Install the attachment analyzer
+/plugin install mail-attachment-analyzer@mail-mcp
+
+# 3. Restart Claude Code
+```
+
+Replace `/path/to/mail-mcp-bridge` with your actual installation path.
+
+**Usage**:
+
+After installation, the plugin works automatically:
+
+```
+You: Analyze this email <message-id@example.com>
+AI: [Automatically detects attachments and analyzes intelligently]
+```
+
+Or use manual commands:
+
+```
+/mail-mcp:analyze-attachment
+```
+
+📖 **[→ Plugin Documentation](plugins/README.md)**
 
 ### Setup Mail Quick Action
 
