@@ -20,6 +20,24 @@
   ],
   "env_schema": [
     {
+      "name": "MAIL_THREAD_MAX_BODY_LENGTH",
+      "description": "Maximum body length per email when reading threads (default: 1200). Lower values reduce token usage for large threads.",
+      "required": false,
+      "default": "1200"
+    },
+    {
+      "name": "MAIL_SINGLE_MAX_BODY_LENGTH",
+      "description": "Maximum body length when reading a single email (default: 10000). Higher than thread limit to preserve full content.",
+      "required": false,
+      "default": "10000"
+    },
+    {
+      "name": "MAIL_KEEP_QUOTE_LINES",
+      "description": "Number of quote lines to preserve when stripping quoted content in threads (default: 10). Helps maintain conversation context.",
+      "required": false,
+      "default": "10"
+    },
+    {
       "name": "MAIL_ATTACHMENT_PATH",
       "description": "Base temp directory path for attachment extraction (default: /tmp, actual directory will have 'mail-mcp-attachments' subdirectory appended)",
       "required": false,

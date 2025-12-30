@@ -82,13 +82,20 @@ async def list_tools() -> list[Tool]:
             name="read_email",
             description="Parse and read plain text content of an email by RFC Message-ID. "
                        "Returns structured information including subject, sender, recipient, date, body text, etc., "
-                       "enabling AI to analyze email content directly without handling raw .emlx files.",
+                       "enabling AI to analyze email content directly without handling raw .emlx files. "
+                       "Body text is limited by default but can be overridden for full content access.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "message_id": {
                         "type": "string",
                         "description": "RFC Message-ID, e.g. <abc123@example.com>. Can include or exclude angle brackets."
+                    },
+                    "max_body_length": {
+                        "type": "number",
+                        "description": "Maximum body length in characters. "
+                                     "0 = unlimited. "
+                                     "If not specified, uses MAIL_SINGLE_MAX_BODY_LENGTH env var (default: 10000)"
                     }
                 },
                 "required": ["message_id"]
@@ -99,13 +106,20 @@ async def list_tools() -> list[Tool]:
             description="Parse and read all emails in a thread by Message-ID of any email in the thread. "
                        "An email thread is a group of related emails (such as the original email and all replies). "
                        "Returns structured content of all emails in the thread, sorted chronologically, "
-                       "enabling AI to analyze complete email conversations.",
+                       "enabling AI to analyze complete email conversations. "
+                       "Email bodies are truncated by default to prevent excessive data in long threads.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "message_id": {
                         "type": "string",
                         "description": "RFC Message-ID of any email in the thread."
+                    },
+                    "max_body_length": {
+                        "type": "number",
+                        "description": "Maximum body length per email in characters. "
+                                     "0 = unlimited. "
+                                     "If not specified, uses MAIL_THREAD_MAX_BODY_LENGTH env var (default: 1200)"
                     }
                 },
                 "required": ["message_id"]
@@ -256,6 +270,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "read_email":
         # Tool 3: Parse and read email content
         message_id = arguments.get("message_id")
+        max_body_length = arguments.get("max_body_length")
 
         if not message_id:
             return [TextContent(
@@ -278,8 +293,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                     text=json.dumps(result, ensure_ascii=False, indent=2)
                 )]
 
-            # Parse email file
-            email_data = parse_email_file(file_path)
+            # Parse email file with optional body length limit
+            email_data = parse_email_file(file_path, max_body_length=max_body_length)
 
             return [TextContent(
                 type="text",
@@ -300,6 +315,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "read_thread":
         # Tool 4: Parse and read entire email thread
         message_id = arguments.get("message_id")
+        max_body_length = arguments.get("max_body_length")
 
         if not message_id:
             return [TextContent(
@@ -308,6 +324,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             )]
 
         try:
+            # Get max_body_length from environment if not specified
+            if max_body_length is None:
+                import os
+                max_body_length = int(os.environ.get('MAIL_THREAD_MAX_BODY_LENGTH', '1200'))
+
             # Get all email paths in thread
             paths = get_all_thread_paths(message_id, include_not_found=False)
 
@@ -322,10 +343,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                     text=json.dumps(result, ensure_ascii=False, indent=2)
                 )]
 
-            # Parse all emails
+            # Parse all emails with smart quote stripping
+            # For threads, we enable quote stripping to remove redundant quoted content
             emails = []
             for path in paths:
-                email_data = parse_email_file(path)
+                email_data = parse_email_file(
+                    path,
+                    max_body_length=max_body_length,
+                    strip_quotes=True  # Enable smart quote removal for threads
+                )
                 emails.append(email_data)
 
             result = {

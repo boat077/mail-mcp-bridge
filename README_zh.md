@@ -73,6 +73,8 @@ pip3 install mcp
 
 2. **编辑配置** (如果不存在则创建):
 
+   **基础配置**:
+
    ```json
    {
      "mcpServers": {
@@ -85,6 +87,35 @@ pip3 install mcp
      }
    }
    ```
+
+   **高级配置（含环境变量）**:
+
+   ```json
+   {
+     "mcpServers": {
+       "mail": {
+         "command": "python3",
+         "args": [
+           "/path/to/mail-mcp-bridge/src/mail_mcp_server.py"
+         ],
+         "env": {
+           "MAIL_SINGLE_MAX_BODY_LENGTH": "10000",
+           "MAIL_THREAD_MAX_BODY_LENGTH": "1200",
+           "MAIL_KEEP_QUOTE_LINES": "10",
+           "MAIL_ATTACHMENT_PATH": "/tmp"
+         }
+       }
+     }
+   }
+   ```
+
+   **环境变量说明**:
+   - `MAIL_SINGLE_MAX_BODY_LENGTH`: 单封邮件最大正文长度（字符数），默认 10000，0 表示不限制
+   - `MAIL_THREAD_MAX_BODY_LENGTH`: 线索邮件最大正文长度（字符数），默认 1200，0 表示不限制
+   - `MAIL_KEEP_QUOTE_LINES`: 每个引用块保留的行数（保留上下文），默认 10
+   - `MAIL_ATTACHMENT_PATH`: 附件提取目录，默认 `/tmp`
+
+   **智能去引用**: `read_thread` 自动启用智能引用检测，保留新内容和引用头部，删除冗余的大段引用，可节省 80% 的 token
 
    **重要**: 将 `/path/to/mail-mcp-bridge` 替换为实际的项目路径。
 
@@ -117,18 +148,72 @@ Mail MCP 包含开箱即用的 **Claude Code 插件**，提供智能邮件分析
 
 **使用方式**：
 
-安装后，插件会自动工作：
+安装后，插件会自动工作。有三种使用方式：
 
-```
+#### 方式 1：自然语言调用（推荐）
+
+```bash
 你: 分析这封邮件 <message-id@example.com>
-AI: [自动检测附件并智能分析]
+AI: [自动检测并智能分析]
 ```
 
-或使用手动命令：
+#### 方式 2：使用 Slash Commands
 
+在 CLI 中使用 `/` 命令快速调用：
+
+```bash
+# 分析单封邮件（快速查看）
+你: /analyze-email
+AI: Please provide the email Message-ID
+💡 Quick method (recommended):
+In Mail.app: Select email → Press shortcut (⌘⇧C) → Message-ID copied
+你: <message-id@example.com>
+AI: [快速显示邮件内容摘要和附件列表]
 ```
-/mail-mcp:analyze-attachment
-```
+
+**特点**：
+
+- ✅ 每次都是全新开始，不会使用之前的 message-id
+- ✅ 适合分析不同的邮件
+- ⚠️ 需要每次提供 message-id
+
+#### 方式 3：在 VSCode Extension 中点击 Skill
+
+在 Claude Code Extension 中直接点击 Skills：
+
+- `analyze-email`
+- `analyze-thread`
+- `analyze-attachments`
+
+**特点**：
+
+- ✅ AI 会记住对话历史中的 message-id
+- ✅ 如果之前分析过，可能直接使用之前的 ID
+- ✅ 适合对同一邮件进行深入分析
+- ⚠️ 如果想分析新邮件，明确说明："分析新的邮件"
+
+**使用建议**：
+
+| 场景 | 推荐方式 | 原因 |
+|------|---------|------|
+| 首次分析邮件 | Slash Commands | 确保提供正确的 message-id |
+| 深入分析同一邮件 | Extension Skills | 利用对话上下文，减少重复输入 |
+| 分析多个不同邮件 | Slash Commands | 每次都会询问，避免混淆 |
+| 快速查看邮件内容 | 自然语言 | 最直接，无需切换模式 |
+
+**命令对比**：
+
+| 命令 | 用途 | MCP 调用 | 适用场景 |
+|------|------|----------|----------|
+| `/analyze-email` | 快速查看单封邮件 | read_email | 了解邮件内容 |
+| `/analyze-thread` | 分析完整对话线索 | read_thread | 梳理多方沟通 |
+| `/analyze-attachments` | 深度分析附件 | read_email + extract | 处理文档合同 |
+
+> 💡 **提示**：
+>
+> - 自然语言方式更直接（推荐日常使用）
+> - Slash Commands 更快速（适合频繁使用）
+> - 选择命令 = 明确表达意图，减少交互步骤
 
 📖 **[→ 插件文档](plugins/README.md)**
 
@@ -181,35 +266,99 @@ AI: [自动检测附件并智能分析]
 
 ### 基本工作流
 
-```
+```bash
 1. 在 Mail 中选择邮件
 2. 按下快捷键 (如 ⌘⇧C)
 3. 粘贴 Message-ID 给 AI
 ```
 
+### 💡 选择线索中的特定邮件
+
+当需要分析邮件线索中的某封特定邮件时：
+
+**方法 1：展开对话视图**
+1. 在 Mail 应用中选择邮件
+2. 菜单栏：**显示** → **展开所有对话** (Show → Expand All Conversations)
+3. 左侧会显示完整的对话树形结构
+4. 点击选择你想要分析的那封邮件
+5. 按下快捷键复制其 Message-ID
+6. 使用 `/analyze-email` 分析这特定邮件
+
+**方法 2：使用线索命令**
+如果不确定要分析哪一封邮件，可以先：
+1. 使用 `/analyze-thread` 分析整个线索
+2. 查看对话时间线和摘要
+3. 根据摘要，选择需要深入分析的特定邮件
+4. 在 VSCode Extension 中点击 Skill（会使用之前的 message-id）
+
+**使用场景示例**：
+
+```bash
+# 场景：只想看线索中某封重要邮件的详细内容
+你: /analyze-thread
+AI: [显示线索概览，发现第 5 封邮件有重要决策]
+
+你: 我想深入看一下第 5 封邮件
+AI: [从线索摘要中获取第 5 封的 message-id]
+AI: [使用 /analyze-email 分析该邮件]
+```
+
+**小贴士**：
+- `/analyze-thread` 给全局视图，了解整体脉络
+- `/analyze-email` 深入分析单封邮件的详细内容
+- 结合使用可以获得最佳效果
+
 ### 对话示例
 
-**读取单封邮件**:
+#### 读取单封邮件
 
-```
+```bash
 你: 请分析这封邮件: <message-id@example.com>
 
 AI: 我来读取这封邮件...
 [AI 读取并分析邮件内容]
 ```
 
-**读取邮件线索**:
+#### 读取邮件线索
 
-```
+```bash
 你: <message-id@example.com> 的完整对话是什么?
 
 AI: 我来检索整个线索...
 [AI 显示对话中的所有邮件]
 ```
 
-**实际使用场景**:
+#### 分析邮件线索（自动触发 Skill）
 
+```bash
+你: 帮我看看这个邮件线索: <E42FF77C-C563-466D-8544-3E0C16EA24EC@taler.net>
+
+AI: 我来分析这个邮件线索...
+
+📧 邮件线索分析
+- 邮件数量: 37封
+- 时间跨度: 2025-07-02 至 2025-12-10
+- 参与者: Marc Stibane (GNU Taler) ↔ 你
+
+💼 商业合作
+- 项目: SwiftUI Layout 自适应问题咨询
+- 费用: 150€
+- 许可证: MIT
+
+📋 附件清单
+- AdaptiveAmountRow.swift (核心解决方案)
+- TruncationDetectingText.swift (检测组件)
+- Invoice - SwiftUI Consultation.pdf (咨询发票)
+- 多张截图和演示视频
+
+⚠️ 待处理问题
+- 特定设备上的布局闪烁问题
+- 需要进一步调试和优化
 ```
+
+#### 实际使用场景
+
+```bash
 你: 请总结我们与商业伙伴的所有沟通，
 包括他们的需求、承诺的时间表和行动项。
 
@@ -217,9 +366,9 @@ AI: 我来阅读相关的邮件线索并提取关键信息...
 [AI 分析邮件内容，整理项目进展、承诺和行动项]
 ```
 
-**分析邮件附件**:
+#### 分析邮件附件
 
-```
+```bash
 你: 这封邮件有附件吗？
 
 AI: 这封邮件有 2 个附件：
@@ -230,6 +379,98 @@ AI: 这封邮件有 2 个附件：
 
 AI: [提取附件到临时目录]
 [AI 读取并分析 PDF 内容]
+```
+
+#### 使用 Attachment Analyzer Skill
+
+```bash
+你: /attachment-analyzer
+
+AI: 请提供要分析的邮件 Message-ID
+
+你: <E42FF77C-C563-466D-8544-3E0C16EA24EC@taler.net>
+
+AI: 正在分析邮件及附件...
+
+📧 基本信息
+- 发件人: Marc Stibane <marc@taler.net>
+- 主题: Layout problem - can I hire you for that?
+- 日期: 2025年7月2日
+- 线索: 是 (37封邮件)
+
+📎 附件清单 (共9个文件)
+
+🚨 高重要性:
+- Invoice - SwiftUI Consultation.pdf
+  咨询发票，可用于税务抵扣
+
+⚠️ 中重要性:
+- AdaptiveAmountRow.swift
+  核心解决方案代码
+- TruncationDetectingText.swift.zip
+  文本截断检测组件
+
+💡 低重要性:
+- Screenshot 2025-12-08 at 10.36.30.png 等13张截图
+  调试截图
+
+💡 关键发现
+- 这是一个 SwiftUI 布局自适应的技术咨询项目
+- 问题已基本解决，但存在特定设备的闪烁问题
+- 咨询费 150€ 已支付
+
+⚠️ 需要行动
+- 考虑解决 iPhone XS 上的布局闪烁问题
+- 文件已清理
+
+✅ 分析完成，临时文件已删除
+```
+
+#### 自然语言触发 Skill
+
+以下表述都会自动触发邮件分析：
+
+```bash
+# 中文示例
+"分析这封邮件 <message-id>"
+"看看这个邮件有什么附件"
+"帮我整理一下这个线索的内容"
+"这封邮件重要吗"
+"提取邮件中的附件"
+
+# 英文示例
+"Analyze this email <message-id>"
+"What attachments are in this email"
+"Help me understand this thread"
+"Is this email important"
+"Extract email attachments"
+```
+
+#### 批量处理多个邮件
+
+```bash
+你: 我有几封邮件需要分析：
+
+1. <msg1@example.com> - 税务通知
+2. <msg2@example.com> - 合同草案
+3. <msg3@example.com> - 项目讨论
+
+AI: 我来依次分析这些邮件...
+
+[处理邮件 1/3]
+📧 税务通知 - HMRC
+🚨 高重要性: tax_notice_2025.pdf
+⚠️ 行动: 1月31日前提交申报
+
+[处理邮件 2/3]
+📧 合同草案
+⚠️ 中重要性: service_agreement.docx
+💡 待审核条款和付款条件
+
+[处理邮件 3/3]
+📧 项目讨论线索
+🧵 15封邮件，2个附件
+💡 主要讨论: Q1 发布计划
 ```
 
 ## 🛠️ MCP 工具

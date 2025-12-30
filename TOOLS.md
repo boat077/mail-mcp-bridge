@@ -169,9 +169,10 @@ Parse and read plain text content of a single email.
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `message_id` | string | ✅ | RFC Message-ID |
+| Parameter          | Type   | Required | Description                                                                                          |
+|--------------------|--------|----------|------------------------------------------------------------------------------------------------------|
+| `message_id`       | string | ✅       | RFC Message-ID                                                                                       |
+| `max_body_length`  | number | ❌       | Max body length in chars. 0 = unlimited. Default: `MAIL_SINGLE_MAX_BODY_LENGTH` env var (10000)     |
 
 ### Returns
 
@@ -189,6 +190,7 @@ Parse and read plain text content of a single email.
   "references": "<original@example.com> <prev@example.com>",
   "in_reply_to": "<prev@example.com>",
   "body_text": "Plain text email body...",
+  "truncated": false,
   "attachments": [
     {
       "filename": "report.pdf",
@@ -265,13 +267,14 @@ Parse and read plain text content of a single email.
 
 ## 4. `read_thread`
 
-Parse and read entire email thread.
+Parse and read entire email thread. Email bodies are truncated by default to prevent excessive data in long threads.
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `message_id` | string | ✅ | Any Message-ID from the thread |
+| Parameter          | Type   | Required | Description                                                                                         |
+|--------------------|--------|----------|-----------------------------------------------------------------------------------------------------|
+| `message_id`       | string | ✅       | Any Message-ID from the thread                                                                      |
+| `max_body_length`  | number | ❌       | Max body length per email in chars. 0 = unlimited. Default: `MAIL_THREAD_MAX_BODY_LENGTH` env var (1200) |
 
 ### Returns
 
@@ -293,7 +296,8 @@ Parse and read entire email thread.
       "date": "Mon, 23 Dec 2024 09:00:00 +0800",
       "references": "<original@example.com>",
       "in_reply_to": "",
-      "body_text": "Hi Bob, how's the project going?"
+      "body_text": "Hi Bob, how's the project going?",
+      "truncated": false
     },
     {
       "success": true,
@@ -305,7 +309,8 @@ Parse and read entire email thread.
       "date": "Tue, 24 Dec 2024 10:30:00 +0800",
       "references": "<original@example.com> <msg1@example.com>",
       "in_reply_to": "<msg1@example.com>",
-      "body_text": "Making good progress..."
+      "body_text": "Making good progress...",
+      "truncated": false
     },
     {
       "success": true,

@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 import base64
 import quopri
+import os
+import sys
+
+# Import quote stripper
+sys.path.insert(0, str(Path(__file__).parent))
+from quote_stripper import strip_email_quotes
 
 
 def decode_header_value(value: str) -> str:
@@ -43,12 +49,21 @@ def decode_header_value(value: str) -> str:
     return ''.join(decoded_parts)
 
 
-def parse_email_file(file_path: str) -> Dict[str, Any]:
+def parse_email_file(
+    file_path: str,
+    max_body_length: Optional[int] = None,
+    strip_quotes: bool = False
+) -> Dict[str, Any]:
     """
     Parse .emlx file and extract plain text content
 
     Args:
         file_path: Absolute path to .emlx file
+        max_body_length: Maximum body length in characters.
+                        None = use environment variable (MAIL_SINGLE_MAX_BODY_LENGTH, default 10000)
+                        0 = unlimited
+        strip_quotes: Enable smart quote stripping (for thread reading).
+                     Keeps new content + first N lines of quotes
 
     Returns:
         Dictionary containing email information:
@@ -66,7 +81,12 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
                     "mime_type": "...",
                     "size_bytes": 12345
                 }
-            ]
+            ],
+            "truncated": True/False (if body was truncated),
+            "original_length": 12345 (if truncated),
+            "truncated_at": 10000 (if truncated),
+            "quote_stripped": True/False (if quotes were stripped),
+            "quote_lines_stripped": N (number of quote lines removed)
         }
     """
     file_path_obj = Path(file_path)
@@ -185,7 +205,36 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
                 # Non text/plain, try to get payload directly
                 body_text = str(msg.get_payload())
 
-        return {
+        # Handle body processing
+        body_text = body_text.strip()
+        original_length = len(body_text)
+        truncated = False
+        quote_stripped = False
+        quote_metadata = {}
+
+        # Get max_body_length from environment if not specified
+        if max_body_length is None:
+            max_body_length = int(os.environ.get('MAIL_SINGLE_MAX_BODY_LENGTH', '10000'))
+
+        # For thread reading, use different default if strip_quotes is enabled
+        if strip_quotes and max_body_length == int(os.environ.get('MAIL_SINGLE_MAX_BODY_LENGTH', '10000')):
+            max_body_length = int(os.environ.get('MAIL_THREAD_MAX_BODY_LENGTH', '1200'))
+
+        # Step 1: Strip quotes if requested (for thread reading)
+        if strip_quotes:
+            body_text, quote_metadata = strip_email_quotes(
+                body_text,
+                max_length=max_body_length if max_body_length > 0 else 0
+            )
+            quote_stripped = quote_metadata.get('quote_lines_stripped', 0) > 0
+            truncated = quote_metadata.get('hard_truncated', False)
+        else:
+            # Step 2: Apply hard truncation if needed (0 = unlimited)
+            if max_body_length > 0 and original_length > max_body_length:
+                body_text = body_text[:max_body_length]
+                truncated = True
+
+        result = {
             "success": True,
             "message_id": message_id,
             "subject": subject,
@@ -195,9 +244,23 @@ def parse_email_file(file_path: str) -> Dict[str, Any]:
             "date": date,
             "references": references,
             "in_reply_to": in_reply_to,
-            "body_text": body_text.strip(),
+            "body_text": body_text,
             "attachments": attachments
         }
+
+        # Add truncation metadata if truncated
+        if truncated:
+            result["truncated"] = True
+            result["original_length"] = original_length
+            result["truncated_at"] = max_body_length
+
+        # Add quote stripping metadata
+        if quote_stripped:
+            result["quote_stripped"] = True
+            result["quote_lines_stripped"] = quote_metadata.get('quote_lines_stripped', 0)
+            result["quote_lines_kept"] = quote_metadata.get('quote_lines_kept', 0)
+
+        return result
 
     except Exception as e:
         return {
