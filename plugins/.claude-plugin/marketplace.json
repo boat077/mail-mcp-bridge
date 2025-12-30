@@ -1,0 +1,21 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/marketplace.json",
+  "name": "mail-mcp",
+  "version": "1.0.0",
+  "description": "Claude Code plugins for Mail MCP - Email processing and analysis tools",
+  "owner": {
+    "name": "Fatbobman",
+    "email": "fatbobman@example.com"
+  },
+  "plugins": [
+    {
+      "name": "mail-attachment-analyzer",
+      "source": "./mail-attachment-analyzer",
+      "description": "Intelligent email attachment analysis with thread detection and importance classification",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fatbobman"
+      }
+    }
+  ]
+}

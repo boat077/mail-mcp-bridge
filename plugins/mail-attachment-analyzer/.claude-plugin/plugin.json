@@ -1,0 +1,9 @@
+{
+  "name": "mail-attachment-analyzer",
+  "description": "Intelligent email attachment analysis with thread detection and importance classification",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fatbobman",
+    "email": "fatbobman@example.com"
+  }
+}
